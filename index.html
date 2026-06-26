@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>交银安心收益 519753 — 基金分析看板</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>tailwind.config={theme:{extend:{colors:{surface:'#1e293b',border:'#334155',accent:'#60a5fa'}}}};</script>
+  <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body class="bg-[#0f172a] text-gray-200">
+
+<!-- Loading -->
+<div id="loading-overlay" class="fixed inset-0 bg-[#0f172a]/95 z-50 flex flex-col items-center justify-center">
+  <div class="loading-spinner mb-4"></div>
+  <p class="text-gray-400 text-sm">正在拉取最新数据...</p>
+  <p class="text-gray-600 text-xs mt-1">基金净值 · 大盘指数 · 市场展望</p>
+</div>
+
+<!-- Error -->
+<div id="error-banner" class="hidden max-w-7xl mx-auto mt-4 px-4"></div>
+
+<!-- ═══════════════ Header ═══════════════ -->
+<header class="bg-surface border-b border-border">
+  <div class="max-w-7xl mx-auto px-4 py-5 flex flex-wrap items-center justify-between">
+    <div>
+      <h1 class="text-xl font-bold text-white flex items-center gap-2">
+        交银安心收益
+        <span class="text-sm font-normal text-gray-500 bg-gray-800 px-2 py-0.5 rounded">519753</span>
+        <span id="h-badge" class="px-2 py-0.5 bg-gray-800 text-gray-500 text-xs rounded-full">加载中</span>
+      </h1>
+      <p id="h-date" class="text-xs text-gray-500 mt-1">截至 --</p>
+    </div>
+    <div class="flex items-center gap-6">
+      <div id="market-snap" class="hidden md:flex items-center gap-1 border-r border-border pr-4"></div>
+      <div class="text-right">
+        <div id="h-nav" class="text-3xl font-bold text-white tracking-tight">--</div>
+        <div id="h-daily" class="text-2xl font-bold text-gray-400">--</div>
+      </div>
+      <button id="btn-refresh" class="p-2 rounded-lg hover:bg-gray-800 transition-colors" title="刷新数据">
+        <svg class="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+        </svg>
+      </button>
+    </div>
+  </div>
+</header>
+
+<!-- ═══════════════ Nav ═══════════════ -->
+<nav class="nav-sticky">
+  <div class="max-w-7xl mx-auto px-4 flex items-center gap-1 overflow-x-auto py-2">
+    <a href="#sec-nav" class="nav-link text-xs md:text-sm px-3 py-1.5 rounded-lg bg-blue-600/20 text-blue-400 font-medium whitespace-nowrap">📈 净值走势</a>
+    <a href="#sec-dd" class="nav-link text-xs md:text-sm px-3 py-1.5 rounded-lg hover:bg-gray-800 text-gray-400 whitespace-nowrap">📉 回撤分析</a>
+    <a href="#sec-compare" class="nav-link text-xs md:text-sm px-3 py-1.5 rounded-lg hover:bg-gray-800 text-gray-400 whitespace-nowrap">📊 大盘对比</a>
+    <a href="#sec-rate" class="nav-link text-xs md:text-sm px-3 py-1.5 rounded-lg hover:bg-gray-800 text-gray-400 whitespace-nowrap">💰 债市环境</a>
+    <a href="#sec-outlook" class="nav-link text-xs md:text-sm px-3 py-1.5 rounded-lg hover:bg-gray-800 text-gray-400 whitespace-nowrap">💬 市场展望</a>
+    <div class="ml-auto flex items-center gap-1">
+      <span class="text-[10px] text-gray-600 mr-1">视图</span>
+      <button class="view-btn text-[11px] px-2 py-1 rounded bg-gray-800 text-gray-400" data-range="3m">3月</button>
+      <button class="view-btn text-[11px] px-2 py-1 rounded bg-gray-800 text-gray-400" data-range="6m">6月</button>
+      <button class="view-btn text-[11px] px-2 py-1 rounded bg-blue-600 text-white" data-range="1y">1年</button>
+      <button class="view-btn text-[11px] px-2 py-1 rounded bg-gray-800 text-gray-400" data-range="all">全部</button>
+    </div>
+  </div>
+</nav>
+
+<!-- ═══════════════ Main ═══════════════ -->
+<main class="max-w-7xl mx-auto px-4 py-6 space-y-10">
+
+  <!-- ═══ Section 1: 净值走势 ═══ -->
+  <section id="sec-nav">
+    <h2 class="section-title mb-4">净值走势与收益</h2>
+    <!-- 收益卡片 -->
+    <div class="grid grid-cols-2 md:grid-cols-5 gap-3 mb-5">
+      <div class="ret-card card text-center"><p class="text-[10px] text-gray-500 uppercase tracking-wider mb-1">近1月</p><p id="ret-1m" class="text-2xl font-bold text-gray-600">--</p></div>
+      <div class="ret-card card text-center"><p class="text-[10px] text-gray-500 uppercase tracking-wider mb-1">近3月</p><p id="ret-3m" class="text-2xl font-bold text-gray-600">--</p></div>
+      <div class="ret-card card text-center"><p class="text-[10px] text-gray-500 uppercase tracking-wider mb-1">近6月</p><p id="ret-6m" class="text-2xl font-bold text-gray-600">--</p></div>
+      <div class="ret-card card text-center"><p class="text-[10px] text-gray-500 uppercase tracking-wider mb-1">近1年</p><p id="ret-1y" class="text-2xl font-bold text-gray-600">--</p></div>
+      <div class="ret-card card text-center"><p class="text-[10px] text-gray-500 uppercase tracking-wider mb-1">今年以来</p><p id="ret-ytd" class="text-2xl font-bold text-gray-600">--</p></div>
+    </div>
+    <!-- 净值曲线 -->
+    <div class="card"><div id="chart-nav" class="chart-box" style="height:400px;"></div></div>
+  </section>
+
+  <!-- ═══ Section 2: 回撤分析 ═══ -->
+  <section id="sec-dd">
+    <h2 class="section-title mb-4">回撤分析</h2>
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-5">
+      <div class="card text-center"><p class="text-[10px] text-gray-500 uppercase tracking-wider mb-1">当前回撤</p><p id="dd-curr" class="text-2xl font-bold text-red-400">--</p></div>
+      <div class="card text-center"><p class="text-[10px] text-gray-500 uppercase tracking-wider mb-1">回撤持续</p><p id="dd-days" class="text-2xl font-bold text-amber-400">--</p></div>
+      <div class="card text-center"><p class="text-[10px] text-gray-500 uppercase tracking-wider mb-1">历史最大回撤</p><p id="dd-mdd" class="text-2xl font-bold text-red-500">--</p></div>
+      <div class="card text-center"><p class="text-[10px] text-gray-500 uppercase tracking-wider mb-1">MDD 日期</p><p id="dd-date" class="text-lg font-bold text-gray-300">--</p></div>
+    </div>
+    <div class="card"><div id="chart-drawdown" class="chart-box" style="height:320px;"></div></div>
+  </section>
+
+  <!-- ═══ Section 3: 大盘对比 ═══ -->
+  <section id="sec-compare">
+    <h2 class="section-title mb-4">大盘全景对比</h2>
+    <p class="text-xs text-gray-500 mb-4">归一化走势：以起始日为基准 100，观察相对强弱</p>
+
+    <!-- 对比图 1：股票指数 -->
+    <div class="card mb-4">
+      <h3 class="text-sm font-medium text-gray-400 mb-2">基金 vs 股票指数</h3>
+      <div id="chart-comp1" class="chart-box" style="height:340px;"></div>
+    </div>
+
+    <!-- 对比图 2：债券/转债/创业板 -->
+    <div class="card mb-4">
+      <h3 class="text-sm font-medium text-gray-400 mb-2">基金 vs 债券/转债/成长</h3>
+      <div id="chart-comp2" class="chart-box" style="height:340px;"></div>
+    </div>
+
+    <!-- 相关性热力图 + 滚动相关性 -->
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div class="card">
+        <h3 class="text-sm font-medium text-gray-400 mb-2">相关性矩阵</h3>
+        <div id="chart-heatmap" class="chart-box" style="height:320px;"></div>
+      </div>
+      <div class="card">
+        <h3 class="text-sm font-medium text-gray-400 mb-2">滚动相关性（60日）</h3>
+        <p class="text-[10px] text-gray-600 -mt-1 mb-2">观察基金净值与各类资产的动态关联</p>
+        <div id="chart-roll-corr" class="chart-box" style="height:320px;"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══ Section 4: 利率与债市环境 ═══ -->
+  <section id="sec-rate">
+    <h2 class="section-title mb-4">利率与债市环境</h2>
+    <div class="bg-blue-900/20 border border-blue-800/40 rounded-xl p-4 mb-4">
+      <p class="text-xs text-gray-500 mb-1">📡 利率环境判断</p>
+      <p id="rate-detail" class="text-sm text-gray-300">加载中...</p>
+    </div>
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div class="card">
+        <h3 class="text-sm font-medium text-gray-400 mb-2">10年期国债ETF (511010) 累计净值</h3>
+        <p class="text-[10px] text-gray-600 -mt-1 mb-2">净值上行 = 利率下行（利好债基）</p>
+        <div id="chart-bond-etf" class="chart-box" style="height:280px;"></div>
+      </div>
+      <div class="card">
+        <h3 class="text-sm font-medium text-gray-400 mb-2">中证转债指数 (000832)</h3>
+        <p class="text-[10px] text-gray-600 -mt-1 mb-2">反映可转债市场整体走势</p>
+        <div id="chart-zzconvert" class="chart-box" style="height:280px;"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══ Section 5: 市场展望 ═══ -->
+  <section id="sec-outlook">
+    <h2 class="section-title mb-4">市场展望与安抚</h2>
+
+    <!-- 极端市场 -->
+    <div class="bg-red-900/10 border border-red-800/40 rounded-xl p-4 mb-4">
+      <p class="text-xs text-gray-500 mb-1">⚡ 今日极端变化</p>
+      <p id="cm-extreme" class="text-sm text-gray-300 whitespace-pre-line">加载中...</p>
+    </div>
+
+    <!-- 主评语 -->
+    <div id="cm-box" class="bg-blue-900/20 border border-blue-800/50 rounded-xl p-6 mb-4">
+      <p id="cm-sentiment" class="text-sm leading-relaxed whitespace-pre-line text-gray-200">加载中...</p>
+      <div class="mt-4 pt-4 border-t border-blue-800/40 space-y-3">
+        <div><p class="text-[10px] text-gray-500 uppercase tracking-wider mb-1">短期判断</p><p id="cm-short" class="text-sm text-gray-300">--</p></div>
+        <div><p class="text-[10px] text-gray-500 uppercase tracking-wider mb-1">中期展望</p><p id="cm-medium" class="text-sm text-gray-300">--</p></div>
+        <div><p class="text-[10px] text-gray-500 uppercase tracking-wider mb-1">综合观点</p><p id="cm-outlook" class="text-sm text-gray-300 whitespace-pre-line">--</p></div>
+      </div>
+    </div>
+
+    <!-- 历史回撤修复 -->
+    <div class="card mb-4">
+      <h3 class="text-sm font-medium text-gray-400 mb-3">📋 历史回撤修复统计</h3>
+      <p class="text-[10px] text-gray-600 mb-3">统计历史上所有超过 0.5% 的回撤从低谷到再创新高所需的交易日数</p>
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <div class="bg-gray-800/50 rounded-lg p-3 text-center"><p class="text-[10px] text-gray-500">统计次数</p><p id="rec-cnt" class="text-xl font-bold text-gray-200">--</p></div>
+        <div class="bg-gray-800/50 rounded-lg p-3 text-center"><p class="text-[10px] text-gray-500">平均修复</p><p id="rec-avg" class="text-xl font-bold text-emerald-400">--</p></div>
+        <div class="bg-gray-800/50 rounded-lg p-3 text-center"><p class="text-[10px] text-gray-500">最快修复</p><p id="rec-min" class="text-xl font-bold text-blue-400">--</p></div>
+        <div class="bg-gray-800/50 rounded-lg p-3 text-center"><p class="text-[10px] text-gray-500">最慢修复</p><p id="rec-max" class="text-xl font-bold text-red-400">--</p></div>
+      </div>
+    </div>
+
+    <!-- 历史回撤参考表 -->
+    <div class="card">
+      <p id="cm-history" class="text-sm text-gray-400 whitespace-pre-line leading-relaxed">加载中...</p>
+    </div>
+
+    <!-- 持仓推断 -->
+    <div class="card mt-4">
+      <h3 class="text-sm font-medium text-gray-400 mb-3">🔍 持仓结构推断</h3>
+      <div class="bg-gray-800/50 rounded-lg p-4 mb-3">
+        <p class="font-medium text-gray-300 mb-1">推断类型：<span id="pf-type" class="text-accent">--</span></p>
+        <p id="pf-detail" class="text-xs text-gray-400">--</p>
+      </div>
+      <p class="text-[10px] text-gray-600">以上基于净值与各指数相关性推断，仅供参考，不代表实际持仓。</p>
+    </div>
+  </section>
+
+</main>
+
+<!-- ═══════════════ Footer ═══════════════ -->
+<footer class="border-t border-border mt-10 py-6">
+  <div class="max-w-7xl mx-auto px-4 text-center text-[11px] text-gray-600 space-y-1">
+    <p>数据来源：天天基金 · 腾讯财经 | 中证全债以广发中证全债指数基金(003376)净值近似 | 10年期国债以国泰上证10年期国债ETF(511010)净值近似</p>
+    <p class="text-gray-700">⚠️ 本页面分析仅供参考，不构成任何投资建议。投资有风险，入市需谨慎。</p>
+  </div>
+</footer>
+
+<!-- JS -->
+<script src="js/utils.js"></script>
+<script src="js/api.js"></script>
+<script src="js/indicators.js"></script>
+<script src="js/analysis.js"></script>
+<script src="js/charts.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>
